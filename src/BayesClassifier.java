@@ -6,52 +6,64 @@ import java.util.Scanner;
 
 public class BayesClassifier {
     static List<String> vocabulary= new ArrayList<>();
-    static List<Double> probabilitiesA= new ArrayList<>();
-    static List<Double> probabilitiesB= new ArrayList<>();
-    static List<List<String>> TrainDataA= new ArrayList<>();
-    static List<List<String>> TrainDataB= new ArrayList<>();
-    static List<String> wordsInFileToClassify= new ArrayList<>();
+    static List<Double> probabilitiesA= new ArrayList<>(); // list of probabilities for each word in vocabulary to be in class A
+    static List<Double> probabilitiesB= new ArrayList<>(); // list of probabilities for each word in vocabulary to be in class B
+    static List<List<String>> TrainDataA= new ArrayList<>(); // list of training documents for class A
+    static List<List<String>> TrainDataB= new ArrayList<>(); // list of training documents for class B
+    static List<String> wordsInFileToClassify= new ArrayList<>(); // list of words in file to classify
 
+    /**
+     * Separates training documents out of a file, adds them to a list and builds a vocabulary.
+     * @param file training file to read
+     * @param documents list to which the documents are added
+     * @throws IOException if an error occurs while reading the file
+     */
     public static void readFileAndBuildVocab(File file, List<List<String>> documents) throws IOException {
         BufferedReader reader = new BufferedReader(new FileReader(file));
         String line;
 
         while ((line = reader.readLine()) != null) {
-            String[] sentenceTokens = line.split(";"); // Trenne die Zeile anhand des Semikolons
+            String[] sentenceTokens = line.split(";"); // split documents if there are multiple in one line
 
             for (String sentenceToken : sentenceTokens) {
-                String[] words = sentenceToken.trim().split("[,.\\s]+"); // Trenne den Satz in Wörter, wobei Kommas, Punkte und Leerzeichen entfernt werden
+                String[] words = sentenceToken.trim().split("[,.\\s]+"); //split words by whitespaces, commas and dots
 
-                List<String> sentenceWords = new ArrayList<>();
+                List<String> documentWords = new ArrayList<>();
                 for (String word : words) {
-                    if(!vocabulary.contains(word)) // Füge das Wort zum Vokabular hinzu, wenn es noch nicht enthalten ist
+                    if(!vocabulary.contains(word)) // add word to vocabulary if it is not already in it
                         vocabulary.add(word);
-                    sentenceWords.add(word); // Füge jedes Wort zur Liste hinzu
+                    documentWords.add(word); // add word to list of this document
                 }
-                documents.add(sentenceWords); // Füge die Liste der Wörter des Satzes zur Liste der Sätze hinzu
+                documents.add(documentWords); // add document to list of documents
             }
         }
         reader.close();
     }
 
+    /**
+     * Reads a file to classify and adds the words to a list.
+     * @param file file to classify
+     * @throws IOException if an error occurs while reading the file
+     */
     public static void readFileToClassify(File file) throws IOException {
-        BufferedReader reader = new BufferedReader(new FileReader(file));
-        String line;
-
-        while ((line = reader.readLine()) != null) {
-            String[] words = line.trim().split("[,.\\s]+"); // Trenne den Satz in Wörter, wobei Kommas, Punkte und Leerzeichen entfernt werden
-
-            for (String word : words) {
-                wordsInFileToClassify.add(word); // Füge jedes Wort zur Liste hinzu
-            }
+        Scanner scanner = new Scanner(file);
+        while (scanner.hasNext()) {     //read all words in file
+            String word = scanner.next();
+            wordsInFileToClassify.add(word);
         }
-        reader.close();
+        scanner.close();
+        List<String> wordsToRemove = new ArrayList<>();
         for(String word : wordsInFileToClassify) {
-            if(!vocabulary.contains(word)) // Füge das Wort zum Vokabular hinzu, wenn es noch nicht enthalten ist
-                wordsInFileToClassify.remove(word);
+            if(!vocabulary.contains(word))
+                wordsToRemove.add(word);
         }
+        wordsInFileToClassify.removeAll(wordsToRemove); // remove words that are not in vocabulary
     }
 
+    /**
+     * Calculates the probabilities for each word in the vocabulary to be in class A and B
+     * and adds them to the corresponding list.
+     */
     static void calcProbWords() {
         for (String word : vocabulary) {
             int count= 0;
@@ -63,7 +75,7 @@ public class BayesClassifier {
                     }
                 }
             }
-            double numerator= count + 1;
+            double numerator= count + 1;    // Laplace smoothing
             double denominator= TrainDataA.size() + 2;
             probabilitiesA.add(numerator/denominator);
         }
@@ -77,21 +89,26 @@ public class BayesClassifier {
                     }
                 }
             }
-            double numerator= count + 1;
+            double numerator= count + 1;   // Laplace smoothing
             double denominator= TrainDataB.size() + 2;
             probabilitiesB.add(numerator/denominator);
         }
     }
 
+    /**
+     * Calculates the probability for a document to be in the given class.
+     * @param classLabel class to calculate the probability for
+     * @return probability for document to be in class
+     */
     static double calcProbDoc(String classLabel) {
         double prob= 1;
         if(Objects.equals(classLabel, "A")) {
             double probClassA= (double) TrainDataA.size() / (TrainDataA.size() + TrainDataB.size());
-            prob*= probClassA;
+            prob*= probClassA;  //multiply with probability of class A
             int count= 0;
             for (String word : vocabulary) {
-                if(wordsInFileToClassify.contains(word)) {
-                    prob*= probabilitiesA.get(count);
+                if(wordsInFileToClassify.contains(word)) { //multiply probabilities depending on
+                    prob*= probabilitiesA.get(count);       //whether word is in file to classify or not
                 } else {
                     prob*= 1 - probabilitiesA.get(count);
                 }
@@ -101,11 +118,11 @@ public class BayesClassifier {
         }
         if(Objects.equals(classLabel, "B")) {
             double probClassB= (double) TrainDataB.size() / (TrainDataA.size() + TrainDataB.size());
-            prob*= probClassB;
+            prob*= probClassB; //multiply with probability of class B
             int count= 0;
             for (String word : vocabulary) {
-                if(wordsInFileToClassify.contains(word)) {
-                    prob*= probabilitiesB.get(count);
+                if(wordsInFileToClassify.contains(word)) { //multiply probabilities depending on
+                    prob*= probabilitiesB.get(count);      //whether word is in file to classify or not
                 } else {
                     prob*= 1 - probabilitiesB.get(count);
                 }
@@ -116,9 +133,13 @@ public class BayesClassifier {
         return -1;
     }
 
+    /**
+     * Main method to classify a document.
+     * @param args command line arguments
+     */
     public static void main(String[] args) {
         if(args.length != 1) {
-            System.out.println("Usage: java BayesClassifier <fileToClassify>");
+            System.out.println("Usage: java BayesClassifier <fileToClassify.txt>");
             System.exit(1);
         }
         File docA= new File("src/docA.txt");
@@ -130,13 +151,19 @@ public class BayesClassifier {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        System.out.println("Vocabulary: " + vocabulary);
-        for (List<String> words : TrainDataB) {
-            System.out.println(words);
-        }
         calcProbWords();
-        System.out.println("Words in file to classify: " + wordsInFileToClassify);
-        System.out.println("Probabilitie for document to be in class A: " + calcProbDoc("A"));
-        System.out.println("Probabilitie for document to be in class B: " + calcProbDoc("B"));
+        double probDocA=calcProbDoc("A");
+        double probDocB=calcProbDoc("B");
+        if(probDocA>probDocB){
+            System.out.println("Document is classified to class A");
+            System.out.println("Probability for document to be in this class: " + probDocA);
+        }
+        else if(probDocA<probDocB){
+            System.out.println("Document is classified to class B");
+            System.out.println("Probability for document to be in this class: " + probDocB);
+        }
+        else {
+            System.out.println("Document can not be classified because the probabilities are equal.");
+        }
     }
 }
