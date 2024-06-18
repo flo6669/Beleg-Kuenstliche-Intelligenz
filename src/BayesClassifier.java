@@ -105,28 +105,18 @@ public class BayesClassifier {
         if(Objects.equals(classLabel, "A")) {
             double probClassA= (double) TrainDataA.size() / (TrainDataA.size() + TrainDataB.size());
             prob*= probClassA;  //multiply with probability of class A
-            int count= 0;
-            for (String word : vocabulary) {
-                if(wordsInFileToClassify.contains(word)) { //multiply probabilities depending on
-                    prob*= probabilitiesA.get(count);       //whether word is in file to classify or not
-                } else {
-                    prob*= 1 - probabilitiesA.get(count);
-                }
-                count++;
+            for (String word : wordsInFileToClassify) {
+                int count= vocabulary.indexOf(word);
+                prob*= probabilitiesA.get(count); //multiply probabilities
             }
             return prob;
         }
         if(Objects.equals(classLabel, "B")) {
             double probClassB= (double) TrainDataB.size() / (TrainDataA.size() + TrainDataB.size());
             prob*= probClassB; //multiply with probability of class B
-            int count= 0;
-            for (String word : vocabulary) {
-                if(wordsInFileToClassify.contains(word)) { //multiply probabilities depending on
-                    prob*= probabilitiesB.get(count);      //whether word is in file to classify or not
-                } else {
-                    prob*= 1 - probabilitiesB.get(count);
-                }
-                count++;
+            for (String word : wordsInFileToClassify) {
+                int count= vocabulary.indexOf(word);
+                prob*= probabilitiesB.get(count); //multiply probabilities
             }
             return prob;
         }
