@@ -137,7 +137,7 @@ public class BayesClassifier {
         try {
             readFileAndBuildVocab(docA, TrainDataA);
             readFileAndBuildVocab(docB, TrainDataB);
-            readFileToClassify(new File(args[0]));
+            readFileToClassify(new File("src/"+args[0]));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
